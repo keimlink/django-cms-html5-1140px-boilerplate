@@ -113,7 +113,7 @@ $SCM commit -m "Initial Commit"
 # workon $virtualenvname
 cd webapps/django/project
 ./manage.py syncdb --migrate
-./manage.py collectstatic
+./manage.py collectstatic --noinput -l
 ./manage.py runserver
 
 echo "Don't forget to change your secret key in your local_settings.py"

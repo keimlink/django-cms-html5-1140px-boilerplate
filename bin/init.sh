@@ -1,12 +1,20 @@
 #!/usr/bin/env bash
 
 ## Settings
-SCM=hg # SCM of the final project. Tested for 'git' and 'hg'
+SCM=git # SCM of the final project. Tested for 'git' and 'hg'
 PYTHONVERSION=$(/usr/bin/env python --version 2>&1 | \
     sed 's/^Python\ \([0-9]\.[0-9]\).*$/\1/')
 
+function set_django_secret_key () {
+# set DJANGO_SECRET_KEY to a random string of 50 char
+MATRIX="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()_+=?></\-"
+    KEY_LENGTH="50"
+    while [ "${n:=1}" -le "$KEY_LENGTH" ]; do
+        DJANGO_SECRET_KEY="$PASS${MATRIX:$(($RANDOM%${#MATRIX})):1}"
+        let n+=1
+    done
+}
 
-# main()
 echo "Setting up a new django-cms development environment."
 echo "Answer some questions before running the installation."
 
@@ -85,10 +93,12 @@ ln -s $VIRTUAL_ENV/lib/python$PYTHONVERSION/site-packages/filer/media/filer
 cd ../..
 
 echo "Creating local_settings.py ..."
+set_django_secret_key
 cd ./webapps/django/project/
 cp local_settings.py.sample local_settings.py
 cd ../../..
 sed -i s@projectroot@$(pwd)/@g webapps/django/project/local_settings.py
+sed -i "s/^SECRET_KEY=.*$/SECRET_KEY='${DJANGO_SECRET_KEY}'/" webapps/django/project/local_settings.py
 
 echo "Remove lib folder..."
 cp ./lib/.gitignore .

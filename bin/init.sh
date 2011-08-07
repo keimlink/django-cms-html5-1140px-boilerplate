@@ -4,7 +4,13 @@
 SCM=git # SCM of the final project. Tested for 'git' and 'hg'
 PYTHONVERSION=$(/usr/bin/env python --version 2>&1 | \
     sed 's/^Python\ \([0-9]\.[0-9]\).*$/\1/')
+PIP_REQUIREMENTS='config/requirements-devel.txt'
+APP_TEMPLATE="webapp-templates"
+APP_DESTINATION="project"
 
+# Nothing has to be changed below this line.
+
+## Functions
 function set_django_secret_key () {
 # set DJANGO_SECRET_KEY to a random string of 50 char
 MATRIX="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()_+=?></\-"
@@ -15,78 +21,122 @@ MATRIX="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()
     done
 }
 
+function ask_for_virtualenvwrapper () {
+    echo "Leave empty to use the found one: "
+    read VENVWRAPPERSH_INPUT
+    if [ "x$VENVWRAPPERSH_INPUT" != "x" ]
+    then
+        venvwrappersh=$VENVWRAPPERSH_INPUT
+    fi
+}
+
+function set_virtualenvwrapper () {
+    echo -ne "\nLooking for virtualenvwrapper.sh?\n"
+    VENVWRAPPERSH=$(which virtualenvwrapper.sh)
+    [ $? -ne 0 ] && VENVWRAPPERSH="not found"
+
+    echo "Found it on: $VENVWRAPPERSH"
+
+    if [ ! -f $VENVWRAPPERSH ]
+      then
+        echo "ERROR: File $VENVWRAPPERSH does not exist..."
+        exit 1
+    fi
+}
+
+function ask_for_virualenv_name () {
+    echo "Enter a virtualenv name (required):"
+    read VIRTUALENVNAME
+    if [ "x$VIRTUALENVNAME" == "x" ]
+      then
+        echo -ne "\nThe name of the virtualenv cannot be empty!\nExiting.\n"
+        exit 1
+    fi
+    while IFS='\n' read VE; do
+        if [ "$VE" = "$VIRTUALENVNAME" ]; then
+            echo -ne "\nVirtualenv: ->$VE<- already exists! Will be using it.\n"
+            VIRTUALENV_EXISTS=true
+            return
+        fi
+    done < <(lsvirtualenv)
+}
+
+function create_static_folders () {
+    echo "Creating static folders..."
+    for FOLDER in static static/img static/css static/js; do
+        [ -d "$APP_DESTINATION"/"$FOLDER" ] || mkdir "$APP_DESTINATION"/"$FOLDER"
+    done
+    touch "$APP_DESTINATION"/static/css/styles.sass
+}
+
+function copy_html5-boilerplate () {
+    echo "Copying the parts of html5-boilerplate that we need..."
+    cp ./lib/html5-boilerplate/404.html "$APP_DESTINATION"/django/project/templates/404.html
+    cp ./lib/html5-boilerplate/apple-touch-icon* "$APP_DESTINATION"/static/img/
+    cp ./lib/html5-boilerplate/favicon.ico "$APP_DESTINATION"/static/img/favicon.ico
+    cp ./lib/html5-boilerplate/robots.txt "$APP_DESTINATION"/static/robots.txt
+    cp -r ./lib/html5-boilerplate/js "$APP_DESTINATION"/static/
+    cp -r ./lib/html5-boilerplate/css "$APP_DESTINATION"/static/
+}
+
+function copy_1140px () {
+    echo "Copying the parts of 1140px css grid that we need..."
+    for FILE in 1140.css ie.css; do
+        [ -f "$APP_DESTINATION"/static/css/"$FILE" ] || \
+            cp lib/1140px/"$FILE" "$APP_DESTINATION"/static/css/
+    done
+}
+
+# main()
 echo "Setting up a new django-cms development environment."
 echo "Answer some questions before running the installation."
 
-echo -ne "\nWhat is the path to your virtualenvwrapper.sh?\n"
-venvwrappersh=$(which virtualenvwrapper.sh)
-[ $? -ne 0 ] && venvwrappersh="not found"
+set_virtualenvwrapper
+source $VENVWRAPPERSH
+# ask_for_virtualenvwrapper
+ask_for_virualenv_name
 
-echo "Found it on: $venvwrappersh"
-echo "Leave empty to use the found one: "
-read venvwrappersh_input
-if [ "x$venvwrappersh_input" != "x" ]
-  then
-    venvwrappersh=$venvwrappersh_input
-fi
-if [ ! -f $venvwrappersh ]
-  then
-    echo "ERROR: File $venvwrappersh does not exist..."
-    exit 1
+if [ ! $VIRTUALENV_EXISTS ]; then
+    echo "Creating virtualenv: $VIRTUALENVNAME"
+    mkvirtualenv -p python"$PYTHONVERSION" "$VIRTUALENVNAME"
 fi
 
-echo "Enter a virtualenv name (required):"
-read virtualenvname
-if [ "x$virtualenvname" == "x" ]
-  then
-    echo -ne "\nThe name of the virtualenv cannot be empty!\nExiting.\n"
-    exit 1
-fi
+workon $VIRTUALENVNAME
 
-source $venvwrappersh
 echo "Installing all needed modules into a virtualenv"
-mkvirtualenv -p python$PYTHONVERSION $virtualenvname
-workon $virtualenvname
-pip install -r bin/requirements.txt
+pip install -r $PIP_REQUIREMENTS
+[ $? -ne 0 ] && { echo -ne "\nProblem while installing dependencies via pip!\nExit.\n"; exit 1; }
 
 echo "Updating git submodules..."
 git submodule update --init --recursive
 
-echo "Creating static folders..."
-for folder in "./webapps/static ./webapps/static/img ./webapps/static/css ./webapps/static/js"; do
-    mkdir $folder
-done
-touch ./webapps/static/css/styles.sass
+echo "Creating Project folder: $APP_DESTINATION"
+[ -d "$APP_DESTINATION" ] || mkdir $APP_DESTINATION
+cp -r "$APP_TEMPLATE"/* "$APP_DESTINATION"/
 
-echo "Copying the parts of html5-boilerplate that we need..."
-cp ./lib/html5-boilerplate/404.html ./webapps/django/project/templates/404.html
-cp ./lib/html5-boilerplate/apple-touch-icon* ./webapps/static/img/
-cp ./lib/html5-boilerplate/favicon.ico ./webapps/static/img/favicon.ico
-cp ./lib/html5-boilerplate/robots.txt ./webapps/static/robots.txt
-cp -r ./lib/html5-boilerplate/js ./webapps/static/
-cp -r ./lib/html5-boilerplate/css ./webapps/static/
+create_static_folders
+copy_html5-boilerplate
+copy_1140px
 
-echo "Copying the parts of 1140px css grid that we need..."
-cp ./lib/1140px/1140.css ./webapps/static/css/1140.css
-cp ./lib/1140px/ie.css ./webapps/static/css/ie.css
+exit 0
 
 echo "Splitting up html5-boilerplate css..."
-SPLIT=`grep -n "/* Primary Styles" ./webapps/static/css/style.css | awk -F":" '{ print $1 }'`
+SPLIT=`grep -n "/* Primary Styles" "$APP_DESTINATION"/static/css/style.css | awk -F":" '{ print $1 }'`
 SPLITHEAD=`expr $SPLIT - 1`
 SPLITTAIL=`expr $SPLIT + 3`
-head --lines=$SPLITHEAD ./webapps/static/css/style.css > ./webapps/static/css/boilerplate.css
-tail -n +$SPLITTAIL ./webapps/static/css/style.css > ./webapps/static/css/boilerplate_media.css
+head --lines=$SPLITHEAD "$APP_DESTINATION"/static/css/style.css > "$APP_DESTINATION"/static/css/boilerplate.css
+tail -n +$SPLITTAIL "$APP_DESTINATION"/static/css/style.css > "$APP_DESTINATION"/static/css/boilerplate_media.css
 
 echo "Removing the parts we dont want..."
 rm -rf .git
 rm .gitignore
 rm .gitmodules
 rm README.rst
-rm ./webapps/static/css/style.css
+rm "$APP_DESTINATION"/static/css/style.css
 
 echo "Creating symlinks..."
-mkdir -p ./webapps/media
-cd ./webapps/media
+mkdir -p "$APP_DESTINATION"/media
+cd "$APP_DESTINATION"/media
 echo "What is the name of your virtualenv: "
 ln -s $VIRTUAL_ENV/lib/python$PYTHONVERSION/site-packages/cms/media/cms
 ln -s $VIRTUAL_ENV/lib/python$PYTHONVERSION/site-packages/filer/media/filer
@@ -94,7 +144,7 @@ cd ../..
 
 echo "Creating local_settings.py ..."
 set_django_secret_key
-cd ./webapps/django/project/
+cd "$APP_DESTINATION"/django/project/
 cp local_settings.py.sample local_settings.py
 cd ../../..
 sed -i s@projectroot@$(pwd)/@g webapps/django/project/local_settings.py
@@ -104,16 +154,16 @@ echo "Remove lib folder..."
 cp ./lib/.gitignore .
 rm -rf ./lib/
 
-echo "Initiate a new git project..."
+echo "Initiate a new scm repository..."
 $SCM init
 $SCM add .
 $SCM commit -m "Initial Commit"
 
 # FIXME a8 next line not required
 # workon $virtualenvname
-cd webapps/django/project
+cd "$APP_DESTINATION"/django/project
 ./manage.py syncdb --migrate
 ./manage.py collectstatic --noinput -l
 ./manage.py runserver
 
-echo "Don't forget to change your secret key in your local_settings.py"
+echo "We are ready to go..."

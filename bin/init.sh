@@ -7,6 +7,7 @@ PYTHONVERSION=$(/usr/bin/env python --version 2>&1 | \
 PIP_REQUIREMENTS='config/requirements-devel.txt'
 APP_TEMPLATE="webapp-templates"
 APP_DESTINATION="webapps"
+PROJECT="testing"  # name of the Django project
 
 # Nothing has to be changed below this line.
 
@@ -16,7 +17,7 @@ VIRTUAL_ENV=""  # clean variable, will be set on 'workon virtualenvname'
 ## Functions
 function set_django_secret_key () {
 # set DJANGO_SECRET_KEY to a random string of 50 char
-MATRIX="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()_+=?></\-"
+MATRIX="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()_+=?><-"
     KEY_LENGTH="50"
     while [ "${n:=1}" -le "$KEY_LENGTH" ]; do
         DJANGO_SECRET_KEY="$DJANGO_SECRET_KEY${MATRIX:$(($RANDOM%${#MATRIX})):1}"
@@ -75,7 +76,7 @@ function create_static_folders () {
 
 function copy_html5-boilerplate () {
     echo "Copying the parts of html5-boilerplate that we need..."
-    cp ./lib/html5-boilerplate/404.html "$APP_DESTINATION"/django/project/templates/404.html
+    cp ./lib/html5-boilerplate/404.html "$APP_DESTINATION"/django/"$PROJECT"/templates/404.html
     cp ./lib/html5-boilerplate/apple-touch-icon* "$APP_DESTINATION"/static/img/
     cp ./lib/html5-boilerplate/favicon.ico "$APP_DESTINATION"/static/img/favicon.ico
     cp ./lib/html5-boilerplate/robots.txt "$APP_DESTINATION"/static/robots.txt
@@ -147,11 +148,19 @@ function symlink_modules_media () {
 function set_local_settings () {
     echo "Adjusting local_settings.py ..."
     set_django_secret_key
-    cd "$APP_DESTINATION"/django/project/
+    cd "$APP_DESTINATION"/django/"$PROJECT"/
     cp local_settings.py.sample local_settings.py
     sed -i '' "s#projectroot#$(pwd)/#" local_settings.py
     sed -i ''  "s/^SECRET_KEY\ =.*$/SECRET_KEY\ =\ \"${DJANGO_SECRET_KEY}\"/" local_settings.py
     cd ../../..
+}
+
+function init_scm () {
+    echo "Initiate a new scm repository in $APP_DESTINATION/django/$PROJECT/"
+    cd "$APP_DESTINATION"/django/"$PROJECT"/
+    $SCM init
+    $SCM add .
+    $SCM commit -m "Initial Commit"
 }
 
 # main()
@@ -171,15 +180,16 @@ fi
 workon $VIRTUALENVNAME
 
 echo "Installing all needed modules into a virtualenv"
-#pip install -r $PIP_REQUIREMENTS
-#[ $? -ne 0 ] && { echo -ne "\nProblem while installing dependencies via pip!\nExit.\n"; exit 1; }
+pip install -r $PIP_REQUIREMENTS
+[ $? -ne 0 ] && { echo -ne "\nProblem while installing dependencies via pip!\nExit.\n"; exit 1; }
 
 echo "Updating git submodules..."
-#git submodule update --init --recursive
+git submodule update --init --recursive
 
-echo "Creating Project folder: $APP_DESTINATION"
+echo "Creating Web app folder: $APP_DESTINATION"
 [ -d "$APP_DESTINATION" ] || mkdir $APP_DESTINATION
 cp -r "$APP_TEMPLATE"/* "$APP_DESTINATION"/
+mv "$APP_DESTINATION"/django/project "$APP_DESTINATION"/django/"$PROJECT"
 
 create_static_folders
 copy_html5-boilerplate
@@ -187,19 +197,15 @@ copy_1140px
 split_up_html5_boilerplate_css
 symlink_modules_media
 set_local_settings
+init_scm
 
 exit 0
 
 #cleanup_installer
 
-echo "Initiate a new scm repository..."
-$SCM init
-$SCM add .
-$SCM commit -m "Initial Commit"
-
 # FIXME a8 next line not required
 # workon $virtualenvname
-cd "$APP_DESTINATION"/django/project
+cd "$APP_DESTINATION"/django/"$PROJECT"
 ./manage.py syncdb --migrate
 ./manage.py collectstatic --noinput -l
 ./manage.py runserver

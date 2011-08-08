@@ -10,3 +10,5 @@ webapps/static/media
 webapps/static/filer
 webapps/static/cms
 webapps/static/CACHE/
+
+.idea/workspace.xml

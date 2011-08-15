@@ -4,10 +4,8 @@
 SCM=git # SCM of the final project. Tested for 'git' and 'hg'
 PYTHONVERSION=$(/usr/bin/env python --version 2>&1 | \
     sed 's/^Python\ \([0-9]\.[0-9]\).*$/\1/')
-PIP_REQUIREMENTS='config/requirements-devel.txt'
-APP_TEMPLATE="webapp-templates"
 APP_DESTINATION="webapps"
-PROJECT="testing"  # name of the Django project
+PROJECT="testing"  # default name of the Django project
 
 # Nothing has to be changed below this line.
 
@@ -15,6 +13,17 @@ PROJECT="testing"  # name of the Django project
 VIRTUAL_ENV=""  # clean variable, will be set on 'workon virtualenvname'
 
 ## Functions
+
+function configure_2.1 () {
+    PIP_REQUIREMENTS='config/requirements-2.1.txt'
+    APP_TEMPLATE="webapp-templates/2.1"
+}
+
+function configure_2.2 () {
+    PIP_REQUIREMENTS='config/requirements-2.2.txt'
+    APP_TEMPLATE="webapp-templates/2.2"
+}
+
 function set_django_secret_key () {
 # set DJANGO_SECRET_KEY to a random string of 50 char
 MATRIX="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()_+=?><-"
@@ -24,6 +33,25 @@ MATRIX="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()
         n=$(($n+1))
         #let n+=1
     done
+}
+
+function help () {
+cat << EOF
+    Install Django-CMS, Modenizer and cssgrid into virtualenv.
+
+    $0 [OPTIONS]
+
+    -h  This help
+    -v  Version of Django-CMS (2.1 or 2.2). Default is 2.1
+    -e  Name of the virtualenv (If not given will be asked for on cmd line)
+    -p  Project name (Can be different from the virtualenv if installed in the same virtualenv
+        as other projects.
+
+    Example:
+    $0 -v 2.2 -p testing -e venv
+    will install Django-CMS 2.2 into the virtualenv venv and create a Django project named testing.
+
+EOF
 }
 
 function ask_for_virtualenvwrapper () {
@@ -49,6 +77,16 @@ function set_virtualenvwrapper () {
     fi
 }
 
+function check_if_virtualenv_exists () {
+    while IFS='\n' read VE; do
+        if [ "$VE" = "$VIRTUALENVNAME" ]; then
+            echo -ne "\nVirtualenv: ->$VE<- already exists! Will be using it.\n"
+            VIRTUALENV_EXISTS=true
+            return
+        fi
+    done < <(lsvirtualenv)
+}
+
 function ask_for_virualenv_name () {
     echo "Enter a virtualenv name (required):"
     read VIRTUALENVNAME
@@ -57,13 +95,6 @@ function ask_for_virualenv_name () {
         echo -ne "\nThe name of the virtualenv cannot be empty!\nExiting.\n"
         exit 1
     fi
-    while IFS='\n' read VE; do
-        if [ "$VE" = "$VIRTUALENVNAME" ]; then
-            echo -ne "\nVirtualenv: ->$VE<- already exists! Will be using it.\n"
-            VIRTUALENV_EXISTS=true
-            return
-        fi
-    done < <(lsvirtualenv)
 }
 
 function create_static_folders () {
@@ -148,10 +179,13 @@ function symlink_modules_media () {
 function set_local_settings () {
     echo "Adjusting local_settings.py ..."
     set_django_secret_key
+    STATIC_PATH="$(pwd)/${APP_DESTINATION}/"
     cd "$APP_DESTINATION"/django/"$PROJECT"/
-    cp local_settings.py.sample local_settings.py
-    sed -i '' "s#projectroot#$(pwd)/#" local_settings.py
-    sed -i ''  "s/^SECRET_KEY\ =.*$/SECRET_KEY\ =\ \"${DJANGO_SECRET_KEY}\"/" local_settings.py
+    mv local_settings.py.sample local_settings.py
+    sed -i '' "s#projectroot#${STATIC_PATH}#" local_settings.py
+    sed -i '' "s#projecturls#${PROJECT}\.urls#" local_settings.py
+    sed -i ''  "s/projectsecretkey/${DJANGO_SECRET_KEY}/" local_settings.py
+    #echo "ROOT_URLCONF = '$PROJECT.urls'" >> local_settings.py
     cd ../../..
 }
 
@@ -164,13 +198,56 @@ function init_scm () {
 }
 
 # main()
+
+if [ "x$1" == "x" ]; then
+    help
+fi
+
+while getopts "p:e:v:ah" OPTIONS; do
+  case ${OPTIONS} in
+    h)  help
+        exit 0
+        ;;
+    e)
+        VIRTUALENVNAME=$OPTARG
+        ;;
+    v)
+        CMS_VERSION="$OPTARG"
+        ;;
+    p)
+        PROJECT="$OPTARG"
+        ;;
+    \?)
+        echo "Invalid option: -$OPTARG" >&2
+        exit 1
+        ;;
+  esac
+done
+
+[ "x" == "x$CMS_VERSION" ] && CMS_VERSION="2.1"
+
+case ${CMS_VERSION} in
+    2.1)
+        configure_2.1
+        ;;
+    2.2)
+        configure_2.2
+        ;;
+    *)
+        echo "Django CMS version ${CMS_VERSION} not supported. Exit."
+        exit 1
+        ;;
+esac
+
+
 echo "Setting up a new django-cms development environment."
 echo "Answer some questions before running the installation."
 
 set_virtualenvwrapper
 source $VENVWRAPPERSH
 # ask_for_virtualenvwrapper
-ask_for_virualenv_name
+[ "x" == "x$VIRTUALENVNAME" ] && ask_for_virualenv_name
+check_if_virtualenv_exists
 
 if [ ! $VIRTUALENV_EXISTS ]; then
     echo "Creating virtualenv: $VIRTUALENVNAME"

@@ -202,6 +202,7 @@ function init_scm () {
 if [ "x$1" == "x" ]; then
     help
 fi
+RUN_PATH=$(pwd)
 
 while getopts "p:e:v:ah" OPTIONS; do
   case ${OPTIONS} in
@@ -255,17 +256,18 @@ if [ ! $VIRTUALENV_EXISTS ]; then
 fi
 
 workon $VIRTUALENVNAME
+cd $RUN_PATH   #make sure we are on the right dir. Could be that the path is set by workon
 
 echo "Installing all needed modules into a virtualenv"
-pip install -r $PIP_REQUIREMENTS
+echo pip install -r $PIP_REQUIREMENTS
 [ $? -ne 0 ] && { echo -ne "\nProblem while installing dependencies via pip!\nExit.\n"; exit 1; }
 
 echo "Updating git submodules..."
 git submodule update --init --recursive
 
 echo "Creating Web app folder: $APP_DESTINATION"
-[ -d "$APP_DESTINATION" ] || mkdir $APP_DESTINATION
-cp -r "$APP_TEMPLATE"/* "$APP_DESTINATION"/
+[ -d "$APP_DESTINATION/django/" ] || mkdir -p $APP_DESTINATION/django
+cp -r "$APP_TEMPLATE"/django/project "$APP_DESTINATION"/django/
 mv "$APP_DESTINATION"/django/project "$APP_DESTINATION"/django/"$PROJECT"
 
 create_static_folders
@@ -276,15 +278,16 @@ symlink_modules_media
 set_local_settings
 init_scm
 
-exit 0
 
 #cleanup_installer
 
-# FIXME a8 next line not required
-# workon $virtualenvname
-cd "$APP_DESTINATION"/django/"$PROJECT"
-./manage.py syncdb --migrate
-./manage.py collectstatic --noinput -l
+#cd "$APP_DESTINATION"/django/"$PROJECT"
+python manage.py syncdb --noinput --migrate
+echo  $RUN_PATH/$APP_TEMPLATE/django/fixture/initial_auth_data.json
+python manage.py loaddata  $RUN_PATH/$APP_TEMPLATE/django/fixtures/initial_auth_data.json
+echo -ne "\nLoading admin:admin auth data. Do not forget to change e. g. via the /admin interface!\n\n"
+python manage.py collectstatic --noinput
+exit 0
 ./manage.py runserver
 
 echo "We are ready to go..."

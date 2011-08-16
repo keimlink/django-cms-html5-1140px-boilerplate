@@ -1,11 +1,14 @@
 from local_settings import *
+import os
+
+BASEDIR = os.path.dirname(__file__)
 
 gettext = lambda s: s
 
 # Absolute path to the directory that holds media.
 # Example: "/home/media/media.lawrence.com/"
-STATIC_ROOT = PROJECT_ROOT + 'webapps/' + STATIC_APP_NAME + '/'
-MEDIA_ROOT = PROJECT_ROOT + 'webapps/' + MEDIA_APP_NAME + '/'
+STATIC_ROOT = PROJECT_ROOT + STATIC_APP_NAME + '/'
+MEDIA_ROOT = PROJECT_ROOT + MEDIA_APP_NAME + '/'
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash if there is a path component (optional in other cases).
@@ -22,7 +25,8 @@ TEMPLATE_DIRS = (
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
-    PROJECT_ROOT + 'webapps/' + APP_NAME + '/project/templates'
+    #PROJECT_ROOT + APP_NAME + '/templates'
+    BASEDIR + '/templates',
 )
 
 # Django settings for project.
@@ -63,6 +67,8 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.core.context_processors.media',
     'django.core.context_processors.static',
     'cms.context_processors.media',
+    'django.core.context_processors.i18n',
+    'sekizai.context_processors.sekizai',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -73,9 +79,11 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'cms.middleware.page.CurrentPageMiddleware',
     'cms.middleware.user.CurrentUserMiddleware',
-    #'cms.middleware.toolbar.ToolbarMiddleware',
-    'cms.middleware.media.PlaceholderMediaMiddleware',
+    #'cms.middleware.media.PlaceholderMediaMiddleware',
     #'django.middleware.cache.FetchFromCacheMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'cms.middleware.toolbar.ToolbarMiddleware',
 )
 
 THUMBNAIL_PROCESSORS = (
@@ -91,8 +99,6 @@ STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
     'compressor.finders.CompressorFinder',
 )
-
-ROOT_URLCONF = 'project.urls'
 
 CMS_TEMPLATES = (
     ('base.html', gettext('index')),
@@ -121,6 +127,7 @@ INSTALLED_APPS = (
     'cms.plugins.googlemap',
     'cms.plugins.inherit',
     'mptt',
+    'sekizai',
     'publisher',
     'menus',
     # useful 3rd party apps

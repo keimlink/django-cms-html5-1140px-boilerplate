@@ -6,6 +6,7 @@ PYTHONVERSION=$(/usr/bin/env python --version 2>&1 | \
     sed 's/^Python\ \([0-9]\.[0-9]\).*$/\1/')
 APP_DESTINATION="webapps"
 PROJECT="testing"  # default name of the Django project
+CLEANUP_AFTER=false
 
 # Nothing has to be changed below this line.
 
@@ -46,6 +47,7 @@ cat << EOF
     -e  Name of the virtualenv (If not given will be asked for on cmd line)
     -p  Project name (Can be different from the virtualenv if installed in the same virtualenv
         as other projects.
+    -C  clean up installer files and just leave project and virtualenv files
 
     Example:
     $0 -v 2.2 -p testing -e venv
@@ -100,46 +102,51 @@ function ask_for_virualenv_name () {
 function create_static_folders () {
     echo "Creating static folders..."
     for FOLDER in static static/img static/css static/js; do
-        [ -d "$APP_DESTINATION"/"$FOLDER" ] || mkdir "$APP_DESTINATION"/"$FOLDER"
+        [ -d "$APP_DESTINATION"/${CMS_VERSION}/"$FOLDER" ] || mkdir -p "$APP_DESTINATION"/${CMS_VERSION}/"$FOLDER"
     done
-    touch "$APP_DESTINATION"/static/css/styles.sass
+    touch "$APP_DESTINATION"/${CMS_VERSION}/static/css/styles.sass
 }
 
 function copy_html5-boilerplate () {
     echo "Copying the parts of html5-boilerplate that we need..."
     cp ./lib/html5-boilerplate/404.html "$APP_DESTINATION"/django/"$PROJECT"/templates/404.html
-    cp ./lib/html5-boilerplate/apple-touch-icon* "$APP_DESTINATION"/static/img/
-    cp ./lib/html5-boilerplate/favicon.ico "$APP_DESTINATION"/static/img/favicon.ico
-    cp ./lib/html5-boilerplate/robots.txt "$APP_DESTINATION"/static/robots.txt
-    cp -r ./lib/html5-boilerplate/js "$APP_DESTINATION"/static/
-    cp -r ./lib/html5-boilerplate/css "$APP_DESTINATION"/static/
+    cp ./lib/html5-boilerplate/apple-touch-icon* "$APP_DESTINATION"/${CMS_VERSION}/static/img/
+    cp ./lib/html5-boilerplate/favicon.ico "$APP_DESTINATION"/${CMS_VERSION}/static/img/favicon.ico
+    cp ./lib/html5-boilerplate/robots.txt "$APP_DESTINATION"/${CMS_VERSION}/static/robots.txt
+    cp -r ./lib/html5-boilerplate/js "$APP_DESTINATION"/${CMS_VERSION}/static/
+    cp -r ./lib/html5-boilerplate/css "$APP_DESTINATION"/${CMS_VERSION}/static/
 }
 
 function copy_1140px () {
     echo "Copying the parts of 1140px css grid that we need..."
     for FILE in 1140.css ie.css; do
         [ -f "$APP_DESTINATION"/static/css/"$FILE" ] || \
-            cp lib/1140px/"$FILE" "$APP_DESTINATION"/static/css/
+            cp lib/1140px/"$FILE" "$APP_DESTINATION"/${CMS_VERSION}/static/css/
     done
 }
 
 function split_up_html5_boilerplate_css () {
     echo "Splitting up html5-boilerplate css..."
-    SPLIT=$(grep -n "/* Primary styles" "$APP_DESTINATION"/static/css/style.css | awk -F":" '{ print $1 }')
+    SPLIT=$(grep -n "/* Primary styles" "$APP_DESTINATION"/${CMS_VERSION}/static/css/style.css | awk -F":" '{ print $1 }')
     #SPLITHEAD=`expr $SPLIT - 1`
     SPLITHEAD=$(($SPLIT-1))
     SPLITTAIL=$(($SPLIT+3))
-    head -n $SPLITHEAD "$APP_DESTINATION"/static/css/style.css > "$APP_DESTINATION"/static/css/boilerplate.css
-    tail -n +$SPLITTAIL "$APP_DESTINATION"/static/css/style.css > "$APP_DESTINATION"/static/css/boilerplate_media.css
+    head -n $SPLITHEAD "$APP_DESTINATION"/${CMS_VERSION}/static/css/style.css > "$APP_DESTINATION"/${CMS_VERSION}/static/css/boilerplate.css
+    tail -n +$SPLITTAIL "$APP_DESTINATION"/${CMS_VERSION}/static/css/style.css > "$APP_DESTINATION"/${CMS_VERSION}/static/css/boilerplate_media.css
+}
+
+function cleanup_installer_test () {
+    echo "Removing all the installer parts ..."
+
+    return
 }
 
 function cleanup_installer () {
-    echo "Removing all the installer parts ..."
     rm -rf .git
     rm .gitignore
     rm .gitmodules
     rm README.rst
-    rm "$APP_DESTINATION"/static/css/style.css
+    rm "$APP_DESTINATION"/${CMS_VERSION}/static/css/style.css
     rm -rf "$APP_TEMPLATE"
 
     echo "Remove lib folder..."
@@ -149,13 +156,12 @@ function cleanup_installer () {
 
 function symlink_modules_media () {
     echo "Creating symlinks..."
-    mkdir -p "$APP_DESTINATION"/media
-    cd "$APP_DESTINATION"/media
+    mkdir -p "$APP_DESTINATION"/${CMS_VERSION}/media
+    cd "$APP_DESTINATION"/${CMS_VERSION}/media
     [ x"$VIRTUAL_ENV" = "x" ] && { echo -ne "\nSomething strange happend. No virtualenv active. Exit.\n"; exit 1; }
     if [ ! -L cms ]; then
         # Need to find real place of module. Installing from repo will just create an egg link
         CMS_PATH=$(python -c "import os, cms; print os.path.dirname(os.path.abspath(cms.__file__))")
-        echo $CMS_PATH
         # try to find the media link. Changed w/ 2.2 using django.contrib.staticfiles
         if [ -d "$CMS_PATH"/media/cms ]; then
             ln -s "$CMS_PATH"/media/cms .
@@ -179,10 +185,11 @@ function symlink_modules_media () {
 function set_local_settings () {
     echo "Adjusting local_settings.py ..."
     set_django_secret_key
-    STATIC_PATH="$(pwd)/${APP_DESTINATION}/"
+    cd $RUN_PATH
+    STATIC_PATH="$(pwd)/${APP_DESTINATION}/${CMS_VERSION}/"
     cd "$APP_DESTINATION"/django/"$PROJECT"/
     mv local_settings.py.sample local_settings.py
-    sed -i '' "s#projectroot#${STATIC_PATH}#" local_settings.py
+    sed -i '' "s#static_files_root#${STATIC_PATH}#" local_settings.py
     sed -i '' "s#projecturls#${PROJECT}\.urls#" local_settings.py
     sed -i ''  "s/projectsecretkey/${DJANGO_SECRET_KEY}/" local_settings.py
     #echo "ROOT_URLCONF = '$PROJECT.urls'" >> local_settings.py
@@ -197,14 +204,23 @@ function init_scm () {
     $SCM commit -m "Initial Commit"
 }
 
+function init_django_project () {
+    python manage.py syncdb --noinput --migrate
+    echo  $RUN_PATH/$APP_TEMPLATE/django/fixture/initial_auth_data.json
+    python manage.py loaddata  $RUN_PATH/$APP_TEMPLATE/django/fixtures/initial_auth_data.json
+    echo -ne "\nLoading admin:admin auth data. Do not forget to change e. g. via the /admin interface!\n\n"
+    python manage.py collectstatic --noinput
+}
+
 # main()
 
 if [ "x$1" == "x" ]; then
     help
+    exit 1
 fi
 RUN_PATH=$(pwd)
 
-while getopts "p:e:v:ah" OPTIONS; do
+while getopts "p:e:v:ahC" OPTIONS; do
   case ${OPTIONS} in
     h)  help
         exit 0
@@ -217,6 +233,9 @@ while getopts "p:e:v:ah" OPTIONS; do
         ;;
     p)
         PROJECT="$OPTARG"
+        ;;
+    C)
+        CLEANUP_AFTER=true
         ;;
     \?)
         echo "Invalid option: -$OPTARG" >&2
@@ -241,13 +260,15 @@ case ${CMS_VERSION} in
 esac
 
 
-echo "Setting up a new django-cms development environment."
-echo "Answer some questions before running the installation."
+echo "Setting up a django-cms environment."
 
 set_virtualenvwrapper
 source $VENVWRAPPERSH
 # ask_for_virtualenvwrapper
-[ "x" == "x$VIRTUALENVNAME" ] && ask_for_virualenv_name
+if [ "x" == "x$VIRTUALENVNAME" ]; then
+    echo "Answer some questions before running the installation."
+    ask_for_virualenv_name
+fi
 check_if_virtualenv_exists
 
 if [ ! $VIRTUALENV_EXISTS ]; then
@@ -259,7 +280,7 @@ workon $VIRTUALENVNAME
 cd $RUN_PATH   #make sure we are on the right dir. Could be that the path is set by workon
 
 echo "Installing all needed modules into a virtualenv"
-echo pip install -r $PIP_REQUIREMENTS
+pip install -r $PIP_REQUIREMENTS
 [ $? -ne 0 ] && { echo -ne "\nProblem while installing dependencies via pip!\nExit.\n"; exit 1; }
 
 echo "Updating git submodules..."
@@ -279,14 +300,10 @@ set_local_settings
 init_scm
 
 
-#cleanup_installer
+[ $CLEANUP_AFTER ] && cleanup_installer_test
 
+init_django_project
 #cd "$APP_DESTINATION"/django/"$PROJECT"
-python manage.py syncdb --noinput --migrate
-echo  $RUN_PATH/$APP_TEMPLATE/django/fixture/initial_auth_data.json
-python manage.py loaddata  $RUN_PATH/$APP_TEMPLATE/django/fixtures/initial_auth_data.json
-echo -ne "\nLoading admin:admin auth data. Do not forget to change e. g. via the /admin interface!\n\n"
-python manage.py collectstatic --noinput
 exit 0
 ./manage.py runserver
 

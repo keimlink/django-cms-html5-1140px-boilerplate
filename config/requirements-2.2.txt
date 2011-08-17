@@ -1,8 +1,8 @@
 django==1.3
--e git+git://github.com/divio/django-cms.git@2.2b1#egg=django-cms
+-e git+git://github.com/divio/django-cms.git@2.2rc1#egg=django-cms
 django-filer
 BeautifulSoup==3.2.0
-django_compressor
+django-compressor
 #django-mptt<0.4
 south
 django-reversion

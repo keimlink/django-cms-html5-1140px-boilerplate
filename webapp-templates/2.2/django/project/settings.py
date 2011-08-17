@@ -7,8 +7,8 @@ gettext = lambda s: s
 
 # Absolute path to the directory that holds media.
 # Example: "/home/media/media.lawrence.com/"
-STATIC_ROOT = PROJECT_ROOT + STATIC_APP_NAME + '/'
-MEDIA_ROOT = PROJECT_ROOT + MEDIA_APP_NAME + '/'
+STATIC_ROOT = STATIC_FILES_ROOT + STATIC_APP_NAME + '/'
+MEDIA_ROOT = STATIC_FILES_ROOT + MEDIA_APP_NAME + '/'
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash if there is a path component (optional in other cases).

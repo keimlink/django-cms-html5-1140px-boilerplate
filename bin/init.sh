@@ -12,6 +12,16 @@ CLEANUP_AFTER=false
 
 ## Set up
 VIRTUAL_ENV=""  # clean variable, will be set on 'workon virtualenvname'
+PLATTFORM=$(uname -s)
+
+if [ ${PLATTFORM} = "Linux" ]; then
+    SED="sed -i "
+elif [ ${PLATTFORM} = "Darwin" ]; then
+    SED="sed -i ''"
+else
+    echo -ne "\nSorry, your Operating System is not currently supported. Exit.\n\n"
+    exit 1
+fi
 
 ## Functions
 
@@ -189,9 +199,9 @@ function set_local_settings () {
     STATIC_PATH="$(pwd)/${APP_DESTINATION}/${CMS_VERSION}/"
     cd "$APP_DESTINATION"/django/"$PROJECT"/
     mv local_settings.py.sample local_settings.py
-    sed -i '' "s#static_files_root#${STATIC_PATH}#" local_settings.py
-    sed -i '' "s#projecturls#${PROJECT}\.urls#" local_settings.py
-    sed -i ''  "s/projectsecretkey/${DJANGO_SECRET_KEY}/" local_settings.py
+    $SED -i '' "s#static_files_root#${STATIC_PATH}#" local_settings.py
+    $SED -i '' "s#projecturls#${PROJECT}\.urls#" local_settings.py
+    $SED -i ''  "s/projectsecretkey/${DJANGO_SECRET_KEY}/" local_settings.py
     #echo "ROOT_URLCONF = '$PROJECT.urls'" >> local_settings.py
     cd ../../..
 }

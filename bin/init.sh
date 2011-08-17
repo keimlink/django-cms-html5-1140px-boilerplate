@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 
 ## Settings
-SCM=git # SCM of the final project. Tested for 'git' and 'hg'
+SCM=hg # SCM of the final project. Tested for 'git' and 'hg'
 PYTHONVERSION=$(/usr/bin/env python --version 2>&1 | \
     sed 's/^Python\ \([0-9]\.[0-9]\).*$/\1/')
 APP_DESTINATION="webapps"
 PROJECT="testing"  # default name of the Django project
 CLEANUP_AFTER=false
+CMS_VERSION="2.1"
 
 # Nothing has to be changed below this line.
 
@@ -22,6 +23,8 @@ else
     echo -ne "\nSorry, your Operating System is not currently supported. Exit.\n\n"
     exit 1
 fi
+
+SUPPORTED_SCMS="git hg"
 
 ## Functions
 
@@ -58,12 +61,22 @@ cat << EOF
     -p  Project name (Can be different from the virtualenv if installed in the same virtualenv
         as other projects.
     -C  clean up installer files and just leave project and virtualenv files
+    -s  SCM currently supported is 'git' or 'hg'
 
     Example:
     $0 -v 2.2 -p testing -e venv
     will install Django-CMS 2.2 into the virtualenv venv and create a Django project named testing.
 
 EOF
+}
+
+function check_scm () {
+
+    for i in $SUPPORTED_SCMS; do
+        [ $SCM = ${i} ] && return
+    done
+    echo "Source Code Management tool $SCM not supported. Exit."
+    exit 1
 }
 
 function ask_for_virtualenvwrapper () {
@@ -199,9 +212,9 @@ function set_local_settings () {
     STATIC_PATH="$(pwd)/${APP_DESTINATION}/${CMS_VERSION}/"
     cd "$APP_DESTINATION"/django/"$PROJECT"/
     mv local_settings.py.sample local_settings.py
-    $SED -i '' "s#static_files_root#${STATIC_PATH}#" local_settings.py
-    $SED -i '' "s#projecturls#${PROJECT}\.urls#" local_settings.py
-    $SED -i ''  "s/projectsecretkey/${DJANGO_SECRET_KEY}/" local_settings.py
+    $SED "s#static_files_root#${STATIC_PATH}#" local_settings.py
+    $SED "s#projecturls#${PROJECT}\.urls#" local_settings.py
+    $SED "s/projectsecretkey/${DJANGO_SECRET_KEY}/" local_settings.py
     #echo "ROOT_URLCONF = '$PROJECT.urls'" >> local_settings.py
     cd ../../..
 }
@@ -230,7 +243,7 @@ if [ "x$1" == "x" ]; then
 fi
 RUN_PATH=$(pwd)
 
-while getopts "p:e:v:ahC" OPTIONS; do
+while getopts "s:p:e:v:ahC" OPTIONS; do
   case ${OPTIONS} in
     h)  help
         exit 0
@@ -247,6 +260,9 @@ while getopts "p:e:v:ahC" OPTIONS; do
     C)
         CLEANUP_AFTER=true
         ;;
+    s)
+        SCM=$OPTARG
+        ;;
     \?)
         echo "Invalid option: -$OPTARG" >&2
         exit 1
@@ -254,7 +270,7 @@ while getopts "p:e:v:ahC" OPTIONS; do
   esac
 done
 
-[ "x" == "x$CMS_VERSION" ] && CMS_VERSION="2.1"
+check_scm
 
 case ${CMS_VERSION} in
     2.1)
@@ -268,7 +284,6 @@ case ${CMS_VERSION} in
         exit 1
         ;;
 esac
-
 
 echo "Setting up a django-cms environment."
 
@@ -313,8 +328,8 @@ init_scm
 [ $CLEANUP_AFTER ] && cleanup_installer_test
 
 init_django_project
-#cd "$APP_DESTINATION"/django/"$PROJECT"
 exit 0
+cd "$APP_DESTINATION"/django/"$PROJECT"
 ./manage.py runserver
 
 echo "We are ready to go..."

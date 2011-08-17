@@ -150,7 +150,7 @@ function copy_1140px () {
 
 function split_up_html5_boilerplate_css () {
     echo "Splitting up html5-boilerplate css..."
-    SPLIT=$(grep -n "/* Primary styles" "$APP_DESTINATION"/${CMS_VERSION}/static/css/style.css | awk -F":" '{ print $1 }')
+    SPLIT=$(grep -n "/* ==|== primary styles" "$APP_DESTINATION"/${CMS_VERSION}/static/css/style.css | awk -F":" '{ print $1 }')
     #SPLITHEAD=`expr $SPLIT - 1`
     SPLITHEAD=$(($SPLIT-1))
     SPLITTAIL=$(($SPLIT+3))

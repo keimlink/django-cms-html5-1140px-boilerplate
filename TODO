@@ -1,0 +1,4 @@
+- Revert split of local_settings and settings or make all changes in local_settings.py
+- See if buildout is the better way
+- Optimise base.html
+- Integrate sekizai

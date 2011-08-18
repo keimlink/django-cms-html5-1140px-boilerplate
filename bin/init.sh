@@ -213,7 +213,7 @@ function set_local_settings () {
     cd "$APP_DESTINATION"/django/"$PROJECT"/
     mv local_settings.py.sample local_settings.py
     $SED "s#static_files_root#${STATIC_PATH}#" local_settings.py
-    $SED "s#projecturls#${PROJECT}\.urls#" local_settings.py
+    #$SED "s#projecturls#${PROJECT}\.urls#" local_settings.py
     $SED "s/projectsecretkey/${DJANGO_SECRET_KEY}/" local_settings.py
     #echo "ROOT_URLCONF = '$PROJECT.urls'" >> local_settings.py
     cd ../../..
@@ -306,7 +306,7 @@ cd $RUN_PATH   #make sure we are on the right dir. Could be that the path is set
 
 echo "Installing all needed modules into a virtualenv"
 pip install -r $PIP_REQUIREMENTS
-[ $? -ne 0 ] && { echo -ne "\nProblem while installing dependencies via pip!\nExit.\n"; exit 1; }
+#[ $? -ne 0 ] && { echo -ne "\nProblem while installing dependencies via pip!\nExit.\n"; exit 1; }
 
 echo "Updating git submodules..."
 git submodule update --init --recursive

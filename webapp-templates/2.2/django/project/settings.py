@@ -1,7 +1,6 @@
 from local_settings import *
 import os
 
-BASEDIR = os.path.dirname(__file__)
 
 gettext = lambda s: s
 
@@ -52,7 +51,7 @@ SITE_ID = 1
 
 # If you set this to False, Django will make some optimizations so as not
 # to load the internationalization machinery.
-USE_I18N = False
+USE_I18N = True
 
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
@@ -139,3 +138,20 @@ INSTALLED_APPS = (
 )
 
 
+if DEBUG:
+    import traceback
+    import logging
+
+    # Define a class that logs unhandled errors
+    class LogUncatchedErrors:
+        def process_exception(self, request, exception):
+            logging.error("Unhandled Exception on request for %s\n%s" %
+                                 (request.build_absolute_uri(),
+                                  traceback.format_exc()))
+    # And add it to the middleware classes
+    MIDDLEWARE_CLASSES += ('settings.LogUncatchedErrors',)
+
+    # set shown level of logging output to debug
+    logging.basicConfig(level=logging.DEBUG)
+
+ROOT_URLCONF = ".".join([BASEDIR.split(os.sep)[-1], "urls"])

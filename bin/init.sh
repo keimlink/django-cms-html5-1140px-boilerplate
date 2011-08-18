@@ -122,6 +122,18 @@ function ask_for_virualenv_name () {
     fi
 }
 
+function init_project_folder () {
+    echo "Creating Web app folder: $APP_DESTINATION"
+    [ -d "$APP_DESTINATION/django/" ] || mkdir -p $APP_DESTINATION/django
+    cp -r "$APP_TEMPLATE"/django/project "$APP_DESTINATION"/django/
+    if [ -d ${APP_DESTINATION}/django/${PROJECT} ]; then
+        echo -ne "\nThe project directory ${APP_DESTINATION}/django/${PROJECT} already exits!\n"
+        echo -ne "I do not overwrite anything. Please delete it first.\nExit.\n"
+        exit 1
+    fi
+    mv "$APP_DESTINATION"/django/project "$APP_DESTINATION"/django/"$PROJECT"
+}
+
 function create_static_folders () {
     echo "Creating static folders..."
     for FOLDER in static static/img static/css static/js; do
@@ -311,11 +323,7 @@ pip install -r $PIP_REQUIREMENTS
 echo "Updating git submodules..."
 git submodule update --init --recursive
 
-echo "Creating Web app folder: $APP_DESTINATION"
-[ -d "$APP_DESTINATION/django/" ] || mkdir -p $APP_DESTINATION/django
-cp -r "$APP_TEMPLATE"/django/project "$APP_DESTINATION"/django/
-mv "$APP_DESTINATION"/django/project "$APP_DESTINATION"/django/"$PROJECT"
-
+init_project_folder
 create_static_folders
 copy_html5-boilerplate
 copy_1140px

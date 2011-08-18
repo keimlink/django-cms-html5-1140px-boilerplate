@@ -318,7 +318,7 @@ cd $RUN_PATH   #make sure we are on the right dir. Could be that the path is set
 
 echo "Installing all needed modules into a virtualenv"
 pip install -r $PIP_REQUIREMENTS
-#[ $? -ne 0 ] && { echo -ne "\nProblem while installing dependencies via pip!\nExit.\n"; exit 1; }
+[ $? -ne 0 ] && { echo -ne "\nProblem while installing dependencies via pip!\nExit.\n"; exit 1; }
 
 echo "Updating git submodules..."
 git submodule update --init --recursive

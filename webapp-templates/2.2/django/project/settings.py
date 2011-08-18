@@ -1,6 +1,5 @@
-from local_settings import *
 import os
-
+from local_settings import *
 
 gettext = lambda s: s
 
@@ -19,6 +18,8 @@ MEDIA_URL = '/media/'
 # trailing slash.
 # Examples: "http://foo.com/media/", "/media/".
 ADMIN_MEDIA_PREFIX = '/static/admin/'
+
+ROOT_URLCONF = ".".join([BASEDIR.split(os.sep)[-1], "urls"])
 
 TEMPLATE_DIRS = (
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
@@ -153,5 +154,3 @@ if DEBUG:
 
     # set shown level of logging output to debug
     logging.basicConfig(level=logging.DEBUG)
-
-ROOT_URLCONF = ".".join([BASEDIR.split(os.sep)[-1], "urls"])

@@ -1,10 +1,7 @@
 import os
-
 from local_settings import *
 
 gettext = lambda s: s
-
-BASEDIR = os.path.dirname(__file__)
 
 # Absolute path to the directory that holds media.
 # Example: "/home/media/media.lawrence.com/"
@@ -21,6 +18,8 @@ MEDIA_URL = '/media/'
 # trailing slash.
 # Examples: "http://foo.com/media/", "/media/".
 ADMIN_MEDIA_PREFIX = '/static/admin/'
+
+ROOT_URLCONF = ".".join([BASEDIR.split(os.sep)[-1], "urls"])
 
 TEMPLATE_DIRS = (
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
@@ -52,7 +51,7 @@ SITE_ID = 1
 
 # If you set this to False, Django will make some optimizations so as not
 # to load the internationalization machinery.
-USE_I18N = False
+USE_I18N = True
 
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
@@ -80,6 +79,9 @@ MIDDLEWARE_CLASSES = (
     #'cms.middleware.toolbar.ToolbarMiddleware',
     'cms.middleware.media.PlaceholderMediaMiddleware',
     #'django.middleware.cache.FetchFromCacheMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'cms.middleware.toolbar.ToolbarMiddleware',
 )
 
 THUMBNAIL_PROCESSORS = (
@@ -123,6 +125,7 @@ INSTALLED_APPS = (
     'cms.plugins.googlemap',
     'cms.plugins.inherit',
     'mptt',
+    'sekizai',
     'publisher',
     'menus',
     # useful 3rd party apps
@@ -134,3 +137,18 @@ INSTALLED_APPS = (
 )
 
 
+if DEBUG:
+    import traceback
+    import logging
+
+    # Define a class that logs unhandled errors
+    class LogUncatchedErrors:
+        def process_exception(self, request, exception):
+            logging.error("Unhandled Exception on request for %s\n%s" %
+                                 (request.build_absolute_uri(),
+                                  traceback.format_exc()))
+    # And add it to the middleware classes
+    MIDDLEWARE_CLASSES += ('settings.LogUncatchedErrors',)
+
+    # set shown level of logging output to debug
+    logging.basicConfig(level=logging.DEBUG)

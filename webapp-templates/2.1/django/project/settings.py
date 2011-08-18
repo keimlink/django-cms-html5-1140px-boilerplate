@@ -125,7 +125,6 @@ INSTALLED_APPS = (
     'cms.plugins.googlemap',
     'cms.plugins.inherit',
     'mptt',
-    'sekizai',
     'publisher',
     'menus',
     # useful 3rd party apps

@@ -1,4 +1,4 @@
-{% load cms_tags menu_tags compress sekizai_tags %}
+{% load cms_tags menu_tags compress %}
 <!doctype html>
 <!--[if lt IE 7]> <html class="no-js ie6 oldie" lang="en"> <![endif]-->
 <!--[if IE 7]>    <html class="no-js ie7 oldie" lang="en"> <![endif]-->
@@ -18,7 +18,6 @@
   <link rel="stylesheet" href="{{ STATIC_URL }}css/styles.sass" type="text/css">
   <link rel="stylesheet" href="{{ STATIC_URL }}css/boilerplate_media.css" type="text/css">
   {% endcompress %}
-  {% render_block "css" %}√
   <!--[if lte IE 9]>
     <link rel="stylesheet" href="{{ STATIC_URL }}css/ie.css" type="text/css" media="screen" />
   <![endif]-->
@@ -80,8 +79,6 @@
   </script>
   -->
   {% endcompress %}
-  {% render_block "js" %}
-
 
 </body>
 </html>

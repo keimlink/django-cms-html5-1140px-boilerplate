@@ -6,3 +6,4 @@ django-compressor
 #django-mptt<0.4
 south
 django-reversion
+django-publisher

@@ -1,14 +1,4 @@
 *.pyc
-webapps/django/project/.sass-cache/
-webapps/static/css/styles.css
-webapps/django/project/local_settings.py
-webapps/django/project/db.sqlite
-webapps/static/filer_private
-webapps/static/filer_public
-webapps/static/cms_page_media
-webapps/static/media
-webapps/static/filer
-webapps/static/cms
-webapps/static/CACHE/
+webapps/*
 
 .idea/*

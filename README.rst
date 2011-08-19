@@ -6,7 +6,7 @@ of web development it turned out that a simple nginx / apache / django /
 django-cms stack works best for us and our customers.
 
 To streamline the process of setting up new projects for new customers we
-created this boilerplate. This script should automatically setup your 
+created this boilerplate. This script should automatically setup your
 virtual environment, initiate your database and collect your static files
 all in one command (``init.sh``). Stop peeling. Start cooking!
 
@@ -46,7 +46,7 @@ Recipe
   cd yourproject
   ./bin/init.sh
 
-Thtat's it!
+That's it!
 
 HTML5 Boilerplate and SASS
 ==========================

@@ -128,7 +128,6 @@ INSTALLED_APPS = (
     'cms.plugins.inherit',
     'mptt',
     'sekizai',
-    'publisher',
     'menus',
     # useful 3rd party apps
     'compressor',

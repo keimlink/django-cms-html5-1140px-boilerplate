@@ -30,11 +30,13 @@ SUPPORTED_SCMS="git hg"
 
 function configure_2.1 () {
     PIP_REQUIREMENTS='config/requirements-2.1.txt'
+    PIP_REQUIREMENTS_NO_DEPS='config/requirements-no-deps-2.1.txt'
     APP_TEMPLATE="webapp-templates/2.1"
 }
 
 function configure_2.2 () {
     PIP_REQUIREMENTS='config/requirements-2.2.txt'
+    PIP_REQUIREMENTS_NO_DEPS='config/requirements-no-deps-2.2.txt'
     APP_TEMPLATE="webapp-templates/2.2"
 }
 
@@ -318,6 +320,7 @@ cd $RUN_PATH   #make sure we are on the right dir. Could be that the path is set
 
 echo "Installing all needed modules into a virtualenv"
 pip install -r $PIP_REQUIREMENTS
+pip install --no-deps -r $PIP_REQUIREMENTS_NO_DEPS
 [ $? -ne 0 ] && { echo -ne "\nProblem while installing dependencies via pip!\nExit.\n"; exit 1; }
 
 echo "Updating git submodules..."
